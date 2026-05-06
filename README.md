@@ -72,4 +72,4 @@ Standard API outputs are often verbose and contain heavy metadata that isn't nee
 ### Technical Note: Character Offsets
 
 - **Azure DevOps (`grapple-az`)**: Character offsets are **absolute** to the start of the file.
-- **GitHub (`grapple-gh`)**: Character offsets are **relative** to the start of the match fragment (snippet), as GitHub's search API does not provide absolute file offsets. AI agents should be aware that these offsets refer to the provided snippet context.
+- **GitHub (`grapple-gh-api` / `grapple-gh-cli`)**: Character offsets are **relative** to the start of the match fragment (snippet). GitHub's search API does not provide absolute file offsets in its search results. AI agents must be aware that these offsets refer to the provided snippet context.
