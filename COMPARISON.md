@@ -41,10 +41,17 @@ This document compares the raw JSON output from GitHub search APIs against the "
 
 #### Compacted Grapple Output
 ```text
-chromium/chromium/base/hash/hash.h:45:4
-chromium/chromium/base/hash/hash.h:89:4
-chromium/chromium/crypto/secure_hash.h:12:4
-... (truncated)
+chromium/chromium/crypto/hash.cc:6:4
+chromium/chromium/crypto/hash.cc:11:4
+chromium/chromium/crypto/hash.cc:81:4
+chromium/chromium/ui/gfx/render_text_harfbuzz.h:86:4
+chromium/chromium/ui/gfx/render_text_harfbuzz.cc:95:4
+chromium/chromium/ui/gfx/render_text_harfbuzz.cc:183:4
+chromium/chromium/crypto/obsolete/md5.cc:47:4
+chromium/chromium/crypto/obsolete/md5.cc:86:4
+chromium/chromium/crypto/obsolete/md5.cc:47:4
+chromium/chromium/gpu/ipc/service/context_url.h:86:4
+chromium/chromium/gpu/ipc/service/context_url.h:112:4
 ```
 
 ---
