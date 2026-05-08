@@ -31,12 +31,23 @@ func main() {
 }
 
 func Run(r io.Reader, w io.Writer) error {
-	var items []GHCLIItem
-	if err := json.NewDecoder(r).Decode(&items); err != nil {
-		return fmt.Errorf("failed to decode GitHub CLI JSON array: %w", err)
+	decoder := json.NewDecoder(r)
+
+	// Expect the start of an array
+	t, err := decoder.Token()
+	if err != nil {
+		return fmt.Errorf("failed to read JSON token: %w", err)
+	}
+	if delim, ok := t.(json.Delim); !ok || delim != '[' {
+		return fmt.Errorf("expected JSON array start, got: %T %v", t, t)
 	}
 
-	for _, item := range items {
+	for decoder.More() {
+		var item GHCLIItem
+		if err := decoder.Decode(&item); err != nil {
+			return fmt.Errorf("failed to decode GitHub CLI JSON item: %w", err)
+		}
+
 		repo := item.Repository.NameWithOwner
 		path := item.Path
 
@@ -52,5 +63,15 @@ func Run(r io.Reader, w io.Writer) error {
 			fmt.Fprintf(w, "%s/%s:0:0\n", repo, path)
 		}
 	}
+
+	// Expect the end of the array
+	t, err = decoder.Token()
+	if err != nil {
+		return fmt.Errorf("failed to read JSON token: %w", err)
+	}
+	if delim, ok := t.(json.Delim); !ok || delim != ']' {
+		return fmt.Errorf("expected JSON array end, got: %T %v", t, t)
+	}
+
 	return nil
 }
