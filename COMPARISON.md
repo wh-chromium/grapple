@@ -6,7 +6,7 @@ found in the LICENSE file.
 
 *Note: The following examples use materials from the Chromium project for demonstration purposes only.*
 
-This document compares the raw JSON output from GitHub search APIs against the "compacted" output produced by Grapple. The goal is to illustrate how Grapple simplifies verbose metadata into a clean, grep-like format for use in CLI workflows and AI contexts.
+This document compares the raw JSON output from GitHub search APIs against the "compacted" output produced by Grapple. The goal is to illustrate how Grapple simplifies verbose metadata into a clean, coordinate-based format for use in CLI workflows and AI contexts.
 
 ## Search Case: "Hash" in `chromium/chromium`
 **Query:** `Hash repo:chromium/chromium` (Limited to top 5 results)

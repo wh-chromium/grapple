@@ -1,6 +1,6 @@
 # Grapple
 
-Grapple is a set of tools designed to transform Azure DevOps and GitHub Code Search API results into a clean, **grep-like syntax**. 
+Grapple is a set of tools designed to transform Azure DevOps and GitHub Code Search API results into a clean, **coordinate-based format**. 
 
 This format is optimized for AI agents and CLI workflows, providing precise `:offset:length` metadata to facilitate surgical code analysis with minimal token usage.
 
