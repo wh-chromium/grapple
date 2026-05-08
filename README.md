@@ -69,6 +69,8 @@ Standard API outputs are often verbose and contain heavy metadata that isn't nee
 2.  Receive a compact list of "hits".
 3.  Precisely target only the relevant lines/blocks for subsequent "read" operations.
 
+👉 **Are you an AI Agent?** Read the [Agent Instructions](AGENT_INSTRUCTIONS.md) for quick copy-paste commands to use this tool effectively.
+
 ### Technical Note: Character Offsets
 
 - **Azure DevOps (`grapple-az`)**: Character offsets are **absolute** to the start of the file.
