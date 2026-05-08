@@ -47,21 +47,78 @@ func main() {
 }
 
 func Run(r io.Reader, w io.Writer) error {
-	var response CodeSearchResponse
 	decoder := json.NewDecoder(r)
-	if err := decoder.Decode(&response); err != nil {
-		return fmt.Errorf("failed to decode Azure DevOps JSON: %w", err)
+
+	// Expect the start of the outer object
+	t, err := decoder.Token()
+	if err != nil {
+		return fmt.Errorf("failed to read JSON token: %w", err)
+	}
+	if delim, ok := t.(json.Delim); !ok || delim != '{' {
+		return fmt.Errorf("expected JSON object start, got: %T %v", t, t)
 	}
 
-	for _, result := range response.Results {
-		for _, match := range result.Matches.Content {
-			// Ensure path has a leading slash for consistency
-			path := result.Path
-			if path != "" && path[0] != '/' {
-				path = "/" + path
+	foundResults := false
+	for decoder.More() {
+		t, err := decoder.Token()
+		if err != nil {
+			return fmt.Errorf("failed to read JSON token: %w", err)
+		}
+		
+		key, ok := t.(string)
+		if !ok {
+			continue // Skip non-string keys
+		}
+
+		if key == "results" {
+			foundResults = true
+			
+			// Expect the start of the array
+			t, err := decoder.Token()
+			if err != nil {
+				return fmt.Errorf("failed to read JSON token after 'results' key: %w", err)
 			}
-			fmt.Fprintf(w, "%s/%s%s:%d:%d\n", result.Project.Name, result.Repository.Name, path, match.CharOffset, match.Length)
+			if delim, ok := t.(json.Delim); !ok || delim != '[' {
+				return fmt.Errorf("expected JSON array start after 'results' key, got: %T %v", t, t)
+			}
+
+			for decoder.More() {
+				var result Result
+				if err := decoder.Decode(&result); err != nil {
+					return fmt.Errorf("failed to decode Azure DevOps JSON item: %w", err)
+				}
+
+				for _, match := range result.Matches.Content {
+					// Ensure path has a leading slash for consistency
+					path := result.Path
+					if path != "" && path[0] != '/' {
+						path = "/" + path
+					}
+					fmt.Fprintf(w, "%s/%s%s:%d:%d\n", result.Project.Name, result.Repository.Name, path, match.CharOffset, match.Length)
+				}
+			}
+			
+			// Expect the end of the array
+			t, err = decoder.Token()
+			if err != nil {
+				return fmt.Errorf("failed to read JSON token: %w", err)
+			}
+			if delim, ok := t.(json.Delim); !ok || delim != ']' {
+				return fmt.Errorf("expected JSON array end, got: %T %v", t, t)
+			}
+		} else {
+			// Skip the value for this key
+			var discard interface{}
+			if err := decoder.Decode(&discard); err != nil {
+				return fmt.Errorf("failed to skip JSON value for key %q: %w", key, err)
+			}
 		}
 	}
+
+	if !foundResults {
+		// Just output nothing if "results" isn't present, Azure Devops might return errors instead of items
+		return nil
+	}
+
 	return nil
 }

@@ -35,26 +35,85 @@ func main() {
 }
 
 func Run(r io.Reader, w io.Writer) error {
-	var response GHSearchResponse
-	if err := json.NewDecoder(r).Decode(&response); err != nil {
-		return fmt.Errorf("failed to decode GitHub API JSON object: %w", err)
+	decoder := json.NewDecoder(r)
+
+	// Expect the start of the outer object
+	t, err := decoder.Token()
+	if err != nil {
+		return fmt.Errorf("failed to read JSON token: %w", err)
+	}
+	if delim, ok := t.(json.Delim); !ok || delim != '{' {
+		return fmt.Errorf("expected JSON object start, got: %T %v", t, t)
 	}
 
-	for _, item := range response.Items {
-		repo := item.Repository.FullName
-		path := item.Path
+	foundItems := false
+	for decoder.More() {
+		t, err := decoder.Token()
+		if err != nil {
+			return fmt.Errorf("failed to read JSON token: %w", err)
+		}
+		
+		key, ok := t.(string)
+		if !ok {
+			continue // Skip non-string keys if they somehow occur
+		}
 
-		if len(item.TextMatches) > 0 {
-			for _, tm := range item.TextMatches {
-				for _, m := range tm.Matches {
-					if len(m.Indices) == 2 {
-						fmt.Fprintf(w, "%s/%s:%d:%d\n", repo, path, m.Indices[0], m.Indices[1]-m.Indices[0])
+		if key == "items" {
+			foundItems = true
+			
+			// Expect the start of the array
+			t, err := decoder.Token()
+			if err != nil {
+				return fmt.Errorf("failed to read JSON token after 'items' key: %w", err)
+			}
+			if delim, ok := t.(json.Delim); !ok || delim != '[' {
+				return fmt.Errorf("expected JSON array start after 'items' key, got: %T %v", t, t)
+			}
+
+			for decoder.More() {
+				var item GHItem
+				if err := decoder.Decode(&item); err != nil {
+					return fmt.Errorf("failed to decode GitHub API JSON item: %w", err)
+				}
+
+				repo := item.Repository.FullName
+				path := item.Path
+
+				if len(item.TextMatches) > 0 {
+					for _, tm := range item.TextMatches {
+						for _, m := range tm.Matches {
+							if len(m.Indices) == 2 {
+								fmt.Fprintf(w, "%s/%s:%d:%d\n", repo, path, m.Indices[0], m.Indices[1]-m.Indices[0])
+							}
+						}
 					}
+				} else if repo != "" && path != "" {
+					fmt.Fprintf(w, "%s/%s:0:0\n", repo, path)
 				}
 			}
-		} else if repo != "" && path != "" {
-			fmt.Fprintf(w, "%s/%s:0:0\n", repo, path)
+			
+			// Expect the end of the array
+			t, err = decoder.Token()
+			if err != nil {
+				return fmt.Errorf("failed to read JSON token: %w", err)
+			}
+			if delim, ok := t.(json.Delim); !ok || delim != ']' {
+				return fmt.Errorf("expected JSON array end, got: %T %v", t, t)
+			}
+		} else {
+			// Skip the value for this key
+			// If it's an object or array, decoder.Decode with a discard target or json.RawMessage works,
+			// but an empty interface{} is simpler to just consume and discard the value.
+			var discard interface{}
+			if err := decoder.Decode(&discard); err != nil {
+				return fmt.Errorf("failed to skip JSON value for key %q: %w", key, err)
+			}
 		}
 	}
+
+	if !foundItems {
+		return fmt.Errorf("could not find 'items' key in the JSON object")
+	}
+
 	return nil
 }
